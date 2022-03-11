@@ -11,10 +11,10 @@ Part #1 : Converting PDF to images
 Poppler is required by pdf2image. On Windows it is a pain to install. I downloaded a binary and added the poppler_path parameter to the call below.
 '''
 
-# images = convert_from_path(PDF_file, 500,poppler_path=r'C:\Program Files\Poppler\poppler-0.68.0\bin')
-# for i, image in enumerate(images):
-#     fname = r'D:\Users\Simon\Python-VSCode\projects\ExamScanner\image'+str(i)+'.png'
-#     image.save(fname, "PNG")
+images = convert_from_path(PDF_file, 500,poppler_path=r'C:\Program Files\Poppler\poppler-0.68.0\bin')
+for i, image in enumerate(images):
+    fname = r'D:\Users\Simon\Python-VSCode\projects\ExamScanner\image'+str(i)+'.png'
+    image.save(fname, "PNG")
 
 '''
 Part #2 - Cropping the images
