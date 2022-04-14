@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+
+<head>
+    <!--Stylesheets-->
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css' rel='stylesheet'>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.min.css' rel='stylesheet'>
+    <link href={{url_for('static', filename='style.css' )}} rel='stylesheet'>
+
+    {% if title %}
+    <title>{{ title }} - ExamScanner</title>
+    {% else %}
+    <title>Welcome to ExamScanner</title>
+    {% endif %}
+</head>
+
+<body>
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('login') }}">Login</a>
+    <a href="{{ url_for('crop') }}">Crop a paper</a>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <ul>
+            {% for message in messages %}
+            <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+    {% block content %}{% endblock %}
+</body>
+<!--Script-->
+<script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.min.js'></script>
+<script type='text/javascript' src={{url_for('static', filename='script.js' )}}></script>
+
+</html>

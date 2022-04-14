@@ -3,6 +3,8 @@ const imageTag = document.getElementById("adpImage");
 const getCropped = document.getElementById("getCropped");
 const croppedImg = document.getElementById("croppedImage");
 const dataUrl = document.getElementById("dataUrl");
+var iI = document.getElementById('imageInput');
+if(iI){
 imageInput.addEventListener("change", e => {
   var reader = new FileReader();
   reader.readAsDataURL(e.target.files[0]);
@@ -11,6 +13,7 @@ imageInput.addEventListener("change", e => {
     initCropper();
   };
 });
+};
 function initCropper() {
   const cropper = new Cropper(imageTag);
   getCropped.addEventListener("click", () => {
