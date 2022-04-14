@@ -1,0 +1,56 @@
+<!doctype html>
+
+<html>
+<head>
+<title>{{ title }} - Examscanner</title> 
+<!--Stylesheets-->
+<link href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css' rel='stylesheet'> 
+<link href='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.min.css' rel='stylesheet'>
+<link href={{url_for('static', filename = 'style.css')}} rel='stylesheet'>
+
+
+</head>
+<body>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-5 mt-5">
+      <div class="adp-card">
+        <h4>Choose Image to Crop</h4>
+        <input type="file" class="form-control" id="imageInput" />
+        <div class="cropped-img mt-2" id="croppedImage"></div>
+        <div class="form-group">
+          <label>Data URL</label>
+          <textarea
+            rows="10"
+            class="form-control"
+            placeholder="Data URL"
+            id="dataUrl"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mt-5">
+      <div class="adp-card">
+        <h4>Preview</h4>
+        <div class="preview">
+          <img
+            src={{url_for('static', filename = 'blank.png')}}
+            id="adpImage"
+          />
+        </div>
+        <button class="btn btn-primary mt-2" id="getCropped">
+          Get Cropped Image
+        </button>
+      </div>
+    </div>
+  </div>
+  
+</body>
+
+    
+    <!--Script-->
+<script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.min.js'></script> 
+<script type='text/javascript' src={{url_for('static', filename = 'script.js')}}></script>
+  
+</html>
