@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>User: {{ user.username }}</h1>
+<hr>
+
+<table>
+    {% for paper in papers %}
+    <tr valign="top">
+        <td>{{ paper.paper_name }}</td>
+        <td>{{ paper.author.username }}</td>
+    </tr>
+</table>
+{% endfor %}
+{% endblock %}

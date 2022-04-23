@@ -61,3 +61,19 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+@app.route('/user/<username>')
+@login_required
+def user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    papers = [
+    { 
+        'author': {'username': 'Susan'}, 
+        'paper_name': 'Y11 Mock Exam' 
+    },
+    { 
+        'author': {'username': 'Susan'}, 
+        'paper_name': 'Y7 Winter Exam'  
+    }
+]
+    return render_template('user.html', user=user, papers=papers)
