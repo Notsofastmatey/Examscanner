@@ -4,12 +4,26 @@
 <h1>User: {{ user.username }}</h1>
 <hr>
 
+<form action="" method="post" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <p>
+        {{ form.paper.label }}<br>
+        {{ form.paper(cols=32, rows=4) }}<br>
+        {% for error in form.paper.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>{{ form.submit() }}</p>
+</form>
+
+
 <table>
     {% for paper in papers %}
     <tr valign="top">
         <td>{{ paper.paper_name }}</td>
         <td>{{ paper.author.username }}</td>
     </tr>
+    {% endfor %}
 </table>
-{% endfor %}
+
 {% endblock %}

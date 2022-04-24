@@ -1,8 +1,8 @@
 from app import app, db
 from flask import render_template, flash, redirect, url_for, request
-from app.forms import LoginForm,RegistrationForm
+from app.forms import LoginForm,RegistrationForm, PaperForm
 from flask_login import current_user, login_user, logout_user, login_required
-from app.models import User
+from app.models import User, Paper
 from werkzeug.urls import url_parse
 
 @app.route('/')
@@ -62,18 +62,18 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-@app.route('/user/<username>')
+@app.route('/user/<username>', methods=['GET', 'POST'])
 @login_required
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
-    papers = [
-    { 
-        'author': {'username': 'Susan'}, 
-        'paper_name': 'Y11 Mock Exam' 
-    },
-    { 
-        'author': {'username': 'Susan'}, 
-        'paper_name': 'Y7 Winter Exam'  
-    }
-]
-    return render_template('user.html', user=user, papers=papers)
+    papers=user.papers.all()
+    form = PaperForm()
+    if form.validate_on_submit():
+        paper = Paper(paper_name=form.paper.data, author=current_user)
+        db.session.add(paper)
+        db.session.commit()
+        flash('Your paper has been added to the database.')
+        return render_template('user.html', user=user, form=form, papers=papers)
+
+
+    return render_template('user.html', user=user, form=form, papers=papers)
