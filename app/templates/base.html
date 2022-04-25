@@ -1,42 +1,64 @@
-<!doctype html>
-<html>
+{% extends 'bootstrap/base.html' %}
 
-<head>
-    <!--Stylesheets-->
-    <link href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css' rel='stylesheet'>
-    <link href='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.min.css' rel='stylesheet'>
-    <link href={{url_for('static', filename='style.css' )}} rel='stylesheet'>
+    
+ {%block title %}
+ 
+     {% if title %}
+     <title>{{ title }} - ExamScanner</title>
+     {% else %}
+     <title>Welcome to ExamScanner</title>
+     {% endif %}
+ 
+     {% endblock %}
 
-    {% if title %}
-    <title>{{ title }} - ExamScanner</title>
-    {% else %}
-    <title>Welcome to ExamScanner</title>
-    {% endif %}
-</head>
+{% block navbar %}
+    <nav class="navbar navbar-default">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="{{ url_for('index') }}">Examscanner</a>
+            </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a href="{{ url_for('user', username=current_user.username) }}">My Papers</a></li>
+                    <li><a href="{{ url_for('crop') }}">Crop</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    {% if current_user.is_anonymous %}
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    {% else %}
+                    
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+{% endblock %}
 
-<body>
-    <a href="{{ url_for('index') }}">Home</a>
-    <a href="{{ url_for('crop') }}">Crop a paper</a>
-    {% if current_user.is_anonymous %}
-    <a href="{{ url_for('login') }}">Login</a>
-    {% else %}
-    <a href="{{ url_for('user', username=current_user.username) }}">My Papers</a>
-    <a href="{{ url_for('logout') }}">Logout</a>
-    {% endif %}
-    <hr>
-    {% with messages = get_flashed_messages() %}
+{% block content %}
+ <!--Stylesheet for cropper-->
+ <link href='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.min.css' rel='stylesheet'>
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
         {% if messages %}
-        <ul>
             {% for message in messages %}
-            <li>{{ message }}</li>
+            <div class="alert alert-info" role="alert">{{ message }}</div>
             {% endfor %}
-        </ul>
         {% endif %}
         {% endwith %}
-    {% block content %}{% endblock %}
-</body>
+
+        {# application content needs to be provided in the app_content block #}
+        {% block app_content %}{% endblock %}
+    </div>
+
 <!--Script-->
 <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.6/cropper.min.js'></script>
 <script type='text/javascript' src={{url_for('static', filename='script.js' )}}></script>
 
-</html>
+{% endblock %}

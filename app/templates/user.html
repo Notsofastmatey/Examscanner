@@ -1,26 +1,17 @@
 {% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
 
-{% block content %}
-<h1>User: {{ user.username }}</h1>
+{% block app_content %}
+
+<h2>Add a paper</h2>
+<div class="row">
+    <div class="col-md-4">
+        {{ wtf.quick_form(form) }}
+    </div>
+</div>
 <hr>
-
-<form action="" method="post" enctype="multipart/form-data" >
-
-    {{ form.hidden_tag() }}
-    <p>
-        {{ form.paper.label }}<br>
-        {{ form.paper(cols=64, rows=8) }}<br>
-        {{ form.file.label }}<br>
-        {{ form.file(cols=64, rows=8) }}<br>
-        {% for error in form.paper.errors %}
-        <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-    <p>{{ form.submit() }}</p>
-</form>
-
-
-<table>
+<h2>My Papers</h2>
+<table class="table">
     {% for paper in papers %}
     <tr valign="top">
         <td>{{ paper.paper_name }}</td>
