@@ -21,6 +21,7 @@ class User(UserMixin, db.Model):
 class Paper(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     paper_name = db.Column(db.String(140))
+    filename = db.Column(db.String(300))
     created_time = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 

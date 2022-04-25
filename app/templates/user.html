@@ -4,11 +4,14 @@
 <h1>User: {{ user.username }}</h1>
 <hr>
 
-<form action="" method="post" enctype="multipart/form-data">
+<form action="" method="post" enctype="multipart/form-data" >
+
     {{ form.hidden_tag() }}
     <p>
         {{ form.paper.label }}<br>
-        {{ form.paper(cols=32, rows=4) }}<br>
+        {{ form.paper(cols=64, rows=8) }}<br>
+        {{ form.file.label }}<br>
+        {{ form.file(cols=64, rows=8) }}<br>
         {% for error in form.paper.errors %}
         <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
@@ -22,6 +25,9 @@
     <tr valign="top">
         <td>{{ paper.paper_name }}</td>
         <td>{{ paper.author.username }}</td>
+        <td>{{ paper.created_time }}</td>
+        <td>{{ url_for('upload', user=current_user.get_id(), filename="e.pdf") }}</td>
+        <td><a href="{{ url_for('upload', user=current_user.get_id(), filename='e.pdf' ) }}">{{ paper.filename }}</a></td>
     </tr>
     {% endfor %}
 </table>

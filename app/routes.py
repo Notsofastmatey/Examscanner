@@ -1,9 +1,11 @@
 from app import app, db
-from flask import render_template, flash, redirect, url_for, request
+import os
+from flask import send_from_directory, render_template, flash, redirect, url_for, request, abort
 from app.forms import LoginForm,RegistrationForm, PaperForm
 from flask_login import current_user, login_user, logout_user, login_required
 from app.models import User, Paper
 from werkzeug.urls import url_parse
+from werkzeug.utils import secure_filename
 
 @app.route('/')
 @app.route('/index')
@@ -69,7 +71,19 @@ def user(username):
     papers=user.papers.all()
     form = PaperForm()
     if form.validate_on_submit():
-        paper = Paper(paper_name=form.paper.data, author=current_user)
+        uploaded_file = request.files['file']
+        filename = secure_filename(uploaded_file.filename)
+        if filename != '':
+            file_ext = os.path.splitext(filename)[1]
+            #if file_ext not in app.config['UPLOAD_EXTENSIONS'] or \
+                    #file_ext != uploaded_file.stream:
+                #flash('Invalid file type. Only PDF files are accepted.')
+                #abort(400)
+        myPath = os.path.join(app.config['UPLOAD_PATH'],current_user.get_id())
+        if os.path.isdir(myPath)==False:
+            os.mkdir(myPath)
+        uploaded_file.save(os.path.join(app.config['UPLOAD_PATH'],current_user.get_id(), filename))
+        paper = Paper(paper_name=form.paper.data, author=current_user, filename = filename)
         db.session.add(paper)
         db.session.commit()
         flash('Your paper has been added to the database.')
@@ -77,3 +91,8 @@ def user(username):
 
 
     return render_template('user.html', user=user, form=form, papers=papers)
+
+@app.route('/uploads/<user>/<filename>')
+@login_required
+def upload(filename, user):
+    return send_from_directory(os.path.join(app.config['UPLOAD_PATH'], user), filename)

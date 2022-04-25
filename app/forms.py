@@ -29,7 +29,6 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('Please use a different email address.')
 
 class PaperForm(FlaskForm):
-    paper = StringField('Paper Name', validators=[
-        DataRequired(), Length(min=1, max=140)])
-    document = FileField('Document', validators=[FileRequired(), FileAllowed(['pdf'], 'PDF Document only!')])
+    paper = StringField('Paper Name', validators=[DataRequired(), Length(min=1, max=140)])
+    file = FileField('Master Document (PDF)', validators=[FileRequired(), FileAllowed(['pdf'], 'PDF Document only!')])
     submit = SubmitField('Submit')

@@ -1,1 +1,2 @@
 FLASK_APP=examscanner.py
+FLASK_ENV=development
