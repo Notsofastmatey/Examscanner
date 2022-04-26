@@ -15,3 +15,6 @@ class Config(object):
     UPLOAD_EXTENSIONS = ['.pdf']
     UPLOAD_PATH = 'uploads'
     MAX_CONTENT_LENGTH = 1024 * 1024 * 15 #15MB upload limit
+
+    #For PythonAnywhere < Github integration
+    w_secret = os.environ.get('WEBHOOK_SECRET') or 'tortoise99'
