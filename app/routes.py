@@ -19,6 +19,7 @@ def is_valid_signature(x_hub_signature, data, private_key):
     mac = hmac.new(encoded_key, msg=data, digestmod=algorithm)
     return hmac.compare_digest(mac.hexdigest(), github_signature)
 
+#For PythonAnywhere < Github integration
 @app.route('/update_server', methods=['POST'])
 def webhook():
     if request.method != 'POST':
