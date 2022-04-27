@@ -1,4 +1,4 @@
-from app import app, db, w_secret
+from app import app, db
 import os
 import json
 import git
@@ -10,75 +10,6 @@ from flask_login import current_user, login_user, logout_user, login_required
 from app.models import User, Paper
 from werkzeug.urls import url_parse
 from werkzeug.utils import secure_filename
-
-#For PythonAnywhere < Github integration
-def is_valid_signature(x_hub_signature, data, private_key):
-    hash_algorithm, github_signature = x_hub_signature.split('=', 1)
-    algorithm = hashlib.__dict__.get(hash_algorithm)
-    encoded_key = bytes(private_key, 'latin-1')
-    mac = hmac.new(encoded_key, msg=data, digestmod=algorithm)
-    return hmac.compare_digest(mac.hexdigest(), github_signature)
-
-#For PythonAnywhere < Github integration
-@app.route('/update_server', methods=['POST'])
-def webhook():
-    if request.method != 'POST':
-        return 'OK'
-    else:
-        abort_code = 418
-        # Do initial validations on required headers
-        if 'X-Github-Event' not in request.headers:
-            abort(abort_code)
-        if 'X-Github-Delivery' not in request.headers:
-            abort(abort_code)
-        if 'X-Hub-Signature' not in request.headers:
-            abort(abort_code)
-        if not request.is_json:
-            abort(abort_code)
-        if 'User-Agent' not in request.headers:
-            abort(abort_code)
-        ua = request.headers.get('User-Agent')
-        if not ua.startswith('GitHub-Hookshot/'):
-            abort(abort_code)
-
-        event = request.headers.get('X-GitHub-Event')
-        if event == "ping":
-            return json.dumps({'msg': 'Hi!'})
-        if event != "push":
-            return json.dumps({'msg': "Wrong event type"})
-
-        x_hub_signature = request.headers.get('X-Hub-Signature')
-        # webhook content type should be application/json for request.data to have the payload
-        # request.data is empty in case of x-www-form-urlencoded
-        if not is_valid_signature(x_hub_signature, request.data, w_secret):
-            print('Deploy signature failed: {sig}'.format(sig=x_hub_signature))
-            abort(abort_code)
-
-        payload = request.get_json()
-        if payload is None:
-            print('Deploy payload is empty: {payload}'.format(
-                payload=payload))
-            abort(abort_code)
-
-        if payload['ref'] != 'refs/heads/master':
-            return json.dumps({'msg': 'Not master; ignoring'})
-
-        repo = git.Repo('/var/www/sites/mysite')
-        origin = repo.remotes.origin
-
-        pull_info = origin.pull()
-
-        if len(pull_info) == 0:
-            return json.dumps({'msg': "Didn't pull any information from remote!"})
-        if pull_info[0].flags > 128:
-            return json.dumps({'msg': "Didn't pull any information from remote!"})
-
-        commit_hash = pull_info[0].commit.hexsha
-        build_commit = f'build_commit = "{commit_hash}"'
-        print(f'{build_commit}')
-        return 'Updated PythonAnywhere server to commit {commit}'.format(commit=commit_hash)
-
-
 
 @app.route('/')
 @app.route('/index')
@@ -160,12 +91,13 @@ def user(username):
         db.session.add(paper)
         db.session.commit()
         flash('Your paper has been added to the database.')
-        return render_template('user.html', user=user, form=form, papers=papers)
-
+        return redirect(url_for('user', username=user.username)) 
 
     return render_template('user.html', user=user, form=form, papers=papers)
+
 
 @app.route('/uploads/<user>/<filename>')
 @login_required
 def upload(filename, user):
     return send_from_directory(os.path.join(app.config['UPLOAD_PATH'], user), filename)
+
