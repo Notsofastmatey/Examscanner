@@ -96,8 +96,12 @@ def user(username):
     return render_template('user.html', user=user, form=form, papers=papers)
 
 
-@app.route('/uploads/<user>/<filename>')
+@app.route('/uploads/<filename>')
 @login_required
-def upload(filename, user):
-    return send_from_directory(os.path.join(app.config['UPLOAD_PATH'], user), filename)
+def upload(filename):
+    return send_from_directory(os.path.join(app.config['UPLOAD_PATH'], current_user.get_id()), filename)
 
+@app.route('/showPDF')
+@login_required
+def showPDF():
+    return render_template('showPDF.html')

@@ -1,15 +1,9 @@
 {% extends 'bootstrap/base.html' %}
 
     
- {%block title %}
- 
-     {% if title %}
-     <title>{{ title }} - ExamScanner</title>
-     {% else %}
-     <title>Welcome to ExamScanner</title>
-     {% endif %}
- 
-     {% endblock %}
+{% block title %}
+{% if title %}{{ title }} - Examscanner{% else %}Welcome to Examscanner{% endif %}
+{% endblock %}
 
 {% block navbar %}
     <nav class="navbar navbar-default">

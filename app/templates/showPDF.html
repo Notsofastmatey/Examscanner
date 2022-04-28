@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block app_content %}
+<h1>{{current_user.id}}</h1>
+<img src="app/uploads/3/Ben.png">
+<img src="{{ url_for('upload', filename='Ben.png') }}" style="width: 64px">
+{% endblock %}
+
