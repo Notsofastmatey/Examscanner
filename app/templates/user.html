@@ -17,8 +17,8 @@
         <td>{{ paper.paper_name }}</td>
         <td>{{ paper.author.username }}</td>
         <td>{{ paper.created_time }}</td>
-        <td>{{ url_for('upload', user=current_user.get_id(), filename="e.pdf") }}</td>
-        <td><a href="{{ url_for('upload', user=current_user.get_id(), filename='e.pdf' ) }}">{{ paper.filename }}</a></td>
+        <td>{{ url_for('upload', filename=paper.filename) }}</td>
+        <td><a href="{{ url_for('upload', filename=paper.filename) }}">{{ paper.filename }}</a></td>
     </tr>
     {% endfor %}
 </table>

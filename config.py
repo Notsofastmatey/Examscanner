@@ -13,7 +13,7 @@ class Config(object):
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['your-email@example.com']
     UPLOAD_EXTENSIONS = ['.pdf']
-    UPLOAD_PATH = 'uploads'
+    UPLOAD_PATH = 'app/uploads'
     MAX_CONTENT_LENGTH = 1024 * 1024 * 15 #15MB upload limit
 
     #For PythonAnywhere < Github integration

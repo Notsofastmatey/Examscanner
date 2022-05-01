@@ -79,10 +79,9 @@ def user(username):
         filename = secure_filename(uploaded_file.filename)
         if filename != '':
             file_ext = os.path.splitext(filename)[1]
-            #if file_ext not in app.config['UPLOAD_EXTENSIONS'] or \
-                    #file_ext != uploaded_file.stream:
-                #flash('Invalid file type. Only PDF files are accepted.')
-                #abort(400)
+            if file_ext not in app.config['UPLOAD_EXTENSIONS']:
+                flash('Invalid file type. Only PDF files are accepted.')
+                abort(400)
         myPath = os.path.join(app.config['UPLOAD_PATH'],current_user.get_id())
         if os.path.isdir(myPath)==False:
             os.mkdir(myPath)
@@ -100,6 +99,11 @@ def user(username):
 @login_required
 def upload(filename):
     return send_from_directory(os.path.join(app.config['UPLOAD_PATH'], current_user.get_id()), filename)
+
+
+
+
+
 
 @app.route('/showPDF')
 @login_required
