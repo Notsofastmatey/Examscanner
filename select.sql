@@ -1,2 +1,1 @@
--- SQLite
-select * from papers
+DELETE from paper
