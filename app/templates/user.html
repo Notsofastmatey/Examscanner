@@ -12,12 +12,15 @@
 <hr>
 <h2>My Papers</h2>
 <table class="table">
+    <th scope="col">Paper Name</th>
+    <th scope="col">Author</th>
+    <th scope="col">Date Created</th>
+    <th scope="col">Filename</th>
     {% for paper in papers %}
     <tr valign="top">
         <td>{{ paper.paper_name }}</td>
         <td>{{ paper.author.username }}</td>
-        <td>{{ paper.created_time }}</td>
-        <td>{{ url_for('upload', filename=paper.filename) }}</td>
+        <td>{{ paper.created_time.strftime('%d-%m-%Y') }}</td>
         <td><a href="{{ url_for('upload', filename=paper.filename) }}">{{ paper.filename }}</a></td>
     </tr>
     {% endfor %}
