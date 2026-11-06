@@ -1,0 +1,8 @@
+.venv/
+examvenv/
+__pycache__/
+*.pyc
+uploads/
+logs/
+app.db
+branding/

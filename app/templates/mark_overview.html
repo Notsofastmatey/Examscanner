@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+{% include '_paper_nav.html' %}
+
+<p class="text-muted">Mark one question at a time across every script. Students are shown only as script numbers.</p>
+<table class="table table-condensed" style="max-width: 700px">
+  <tr><th>Question</th><th>Marks</th><th style="width: 45%">Progress</th><th></th></tr>
+  {% for q, marked, total in progress %}
+  <tr>
+    <td><strong>{{ q.label }}</strong></td>
+    <td>{{ q.max_mark or '?' }}</td>
+    <td>
+      {% if total %}
+      <div class="progress" style="margin: 0">
+        <div class="progress-bar{% if marked == total %} progress-bar-success{% endif %}" style="width: {{ 100 * marked // total }}%; min-width: 2.5em">{{ marked }}/{{ total }}</div>
+      </div>
+      {% else %}<span class="text-muted">no answers</span>{% endif %}
+    </td>
+    <td>{% if total %}<a class="btn btn-xs btn-{{ 'default' if marked == total else 'primary' }}" href="{{ url_for('mark_question', id=q.id) }}">{{ 'Review' if marked == total else 'Mark' }}</a>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

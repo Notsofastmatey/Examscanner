@@ -31,4 +31,11 @@ class RegistrationForm(FlaskForm):
 class PaperForm(FlaskForm):
     paper = StringField('Paper Name', validators=[DataRequired(), Length(min=1, max=140)])
     file = FileField('Master Document (PDF)', validators=[FileRequired(), FileAllowed(['pdf'], 'Only PDF documents are allowed.')])
+    printed = FileField('Scan of the printed paper (optional)', validators=[FileAllowed(['pdf'], 'Only PDF documents are allowed.')],
+                        description='If the printed layout differs from the PDF, scan one or more completed scripts.')
     submit = SubmitField('Submit')
+
+class BatchForm(FlaskForm):
+    file = FileField('Scanned scripts (PDF)', validators=[FileRequired(), FileAllowed(['pdf'], 'Only PDF documents are allowed.')],
+                     description='One PDF of the whole pile, each script starting with its cover sheet.')
+    submit = SubmitField('Upload scripts')

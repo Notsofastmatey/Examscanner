@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+{% include '_paper_nav.html' %}
+
+{% if scripts %}
+<p>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('paper_reports', id=paper.id) }}">Download all student reports (Word)</a>
+  {% if not paper.course %}<span class="text-muted small">Pick a course on the Template page and give each question a topic to add topic pages and revision links.</span>{% endif %}
+</p>
+<div style="overflow-x: auto">
+<table class="table table-condensed table-bordered" style="font-size: 12px">
+  <tr>
+    <th>Student</th>
+    {% for q in questions %}<th class="text-center">{{ q.label }}<br><span class="text-muted">/{{ q.max_mark or '?' }}</span></th>{% endfor %}
+    <th class="text-center">Total<br><span class="text-muted">/{{ out_of }}</span></th><th class="text-center">%</th>
+  </tr>
+  {% for script in scripts %}
+  {% set total = script.total() %}
+  <tr>
+    <td style="white-space: nowrap">{{ script.student_name or 'Script {}'.format(script.number) }}
+      <a href="{{ url_for('script_report', id=script.id) }}" title="Word report" class="small">report</a></td>
+    {% for q in questions %}
+    {% set a = marks.get((script.id, q.id)) %}
+    <td class="text-center{% if a and a.mark is none %} warning{% endif %}" {% if a and a.comment %}title="{{ a.comment }}"{% endif %}>
+      {% if a and a.mark is not none %}{{ a.mark }}{% elif a %}<span class="text-muted">-</span>{% endif %}{% if a and a.comment %}*{% endif %}
+    </td>
+    {% endfor %}
+    <td class="text-center"><strong>{{ total }}</strong></td>
+    <td class="text-center">{{ (100 * total / out_of)|round|int if out_of else '' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+<p class="text-muted">Yellow cells are not marked yet. * means there is a comment: hover to read it.</p>
+{% else %}
+<p class="text-muted">Upload some scripts first.</p>
+{% endif %}
+{% endblock %}
