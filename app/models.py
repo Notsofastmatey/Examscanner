@@ -9,6 +9,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
     papers = db.relationship('Paper', backref='author', lazy='dynamic')
+    courses = db.relationship('Course', backref='author', lazy='dynamic')
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -27,6 +28,8 @@ class Paper(db.Model):
     page_count = db.Column(db.Integer)
     mark_scheme_filename = db.Column(db.String(300))
     layout_filename = db.Column(db.String(300))     # optional scan of the printed paper
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=True)
+    course = db.relationship('Course')
     questions = db.relationship('Question', backref='paper', lazy='dynamic',
                                 order_by='Question.position', cascade='all, delete-orphan')
     regions = db.relationship('Region', backref='paper', lazy='dynamic',
@@ -46,6 +49,7 @@ class Question(db.Model):
     mark_scheme = db.Column(db.Text)
     guidance = db.Column(db.Text)
     class_comment = db.Column(db.Text)      # feedback on this question for the whole class
+    topic = db.Column(db.String(20))        # a topic code from the paper's course, e.g. 1.1.1
     regions = db.relationship('Region', backref='question', lazy='dynamic',
                               cascade='all, delete-orphan')
 
@@ -54,7 +58,31 @@ class Question(db.Model):
 
     def to_dict(self):
         return {'id': self.id, 'label': self.label, 'max_mark': self.max_mark,
-                'regions': self.regions.count()}
+                'topic': self.topic or '', 'regions': self.regions.count()}
+
+# A course (a specification, or a scheme of work) and its topics. Questions are tagged
+# with topic codes so student reports can group marks and point to revision material.
+# Everything subject-specific lives here, so any subject can bring its own.
+class Course(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    name = db.Column(db.String(140))            # e.g. OCR GCSE Computer Science (J277)
+    subject = db.Column(db.String(80))          # e.g. Computer Science
+    sections = db.Column(db.JSON)               # {"1": "Computer systems", ...} keyed by the code's first part
+    topic_note = db.Column(db.Text)             # shown to students under the topic table
+    resource_name = db.Column(db.String(80))    # e.g. Craig'n'Dave
+    resource_url = db.Column(db.String(300))    # where to find all of them
+    topics = db.relationship('Topic', backref='course', lazy='dynamic', order_by='Topic.position',
+                             cascade='all, delete-orphan')
+
+class Topic(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), index=True)
+    position = db.Column(db.Integer, default=0)
+    code = db.Column(db.String(20))
+    name = db.Column(db.String(140))
+    revise = db.Column(db.JSON)                 # ["what to revise", ...]
+    videos = db.Column(db.JSON)                 # [["title", "url"], ...]
 
 # A box drawn on the master paper. Coordinates are fractions (0-1) of the page
 # size so they apply to scans at any resolution. kind is 'answer' or 'name'.

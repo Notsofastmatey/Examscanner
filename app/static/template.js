@@ -42,6 +42,8 @@ function renderList() {
     item.className = 'list-group-item' + (q.id === active ? ' active-question' : '');
     item.innerHTML = '<span class="swatch"></span><strong></strong>' +
       (q.id === 'name' ? '' : ' <span class="pull-right"><input class="form-control" type="number" min="0"> marks</span>') +
+      (q.id === 'name' || !Object.keys(PAPER.topics).length ? '' :
+        '<input class="form-control topic" list="topicCodes" placeholder="topic">') +
       ' <small class="' + (count ? 'text-muted' : 'no-boxes') + '">' +
       (count ? count + (count === 1 ? ' box' : ' boxes') : 'no box') + '</small>';
     item.querySelector('.swatch').style.background = colour(q.id);
@@ -57,7 +59,18 @@ function renderList() {
         }
       });
     }
-    const input = item.querySelector('input');
+    const topic = item.querySelector('input.topic');
+    if (topic) {
+      topic.value = q.topic || '';
+      topic.title = PAPER.topics[q.topic] || 'Topic';
+      topic.classList.toggle('no-boxes', !!q.topic && !(q.topic in PAPER.topics));
+      topic.addEventListener('click', e => e.stopPropagation());
+      topic.addEventListener('change', () => {
+        q.topic = topic.value.trim();
+        api('/question/' + q.id, 'POST', {topic: q.topic}).then(renderList);
+      });
+    }
+    const input = item.querySelector('input[type="number"]');
     if (input) {
       input.value = q.max_mark ?? '';
       input.addEventListener('click', e => e.stopPropagation());

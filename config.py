@@ -16,4 +16,6 @@ class Config(object):
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))
     UPLOAD_PATH = os.path.join(APP_ROOT, 'uploads')
     #UPLOAD_PATH = './uploads/'
+    # The school's logo for the top of student reports. Kept out of git: put your own here.
+    REPORT_LOGO = os.path.join(APP_ROOT, 'branding', 'logo.png')
     MAX_CONTENT_LENGTH = 1024 * 1024 * 300 #300MB upload limit, for batches of scans

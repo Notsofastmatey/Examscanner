@@ -7,6 +7,7 @@
   .question-list .list-group-item.active-question { background: #eef5ff; border-left: 4px solid #337ab7; }
   .question-list .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
   .question-list input { width: 48px; display: inline-block; height: 24px; padding: 0 4px; }
+  .question-list input.topic { width: 64px; margin-left: 6px; }
   .question-list .no-boxes { color: #a94442; }
   .page-wrap { position: relative; margin-bottom: 16px; border: 1px solid #ccc; user-select: none; cursor: crosshair; }
   .page-wrap img { width: 100%; display: block; }
@@ -28,6 +29,19 @@
 <div class="row">
   <div class="col-md-4">
     <div class="template-sidebar">
+      <form method="post" action="{{ url_for('set_paper_course', id=paper.id) }}" class="form-inline" style="margin-bottom: 10px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="course_id" class="small">Course</label>
+        <select name="course_id" id="course_id" class="form-control input-sm" onchange="this.form.submit()" style="max-width: 260px">
+          <option value="">None</option>
+          {% for course in courses %}<option value="{{ course.id }}"{% if paper.course_id == course.id %} selected{% endif %}>{{ course.name }}</option>{% endfor %}
+        </select>
+        <a href="{{ url_for('courses') }}" class="small">Courses</a>
+      </form>
+      {% if paper.course %}<p class="small text-muted">Give each question a topic (the box after its name) so student reports can group marks by topic.</p>{% endif %}
+      <datalist id="topicCodes">
+        {% if paper.course %}{% for t in paper.course.topics %}<option value="{{ t.code }}">{{ t.name }}</option>{% endfor %}{% endif %}
+      </datalist>
       <div class="list-group question-list" id="questionList"></div>
       <form class="form-inline" id="addQuestion" style="margin-bottom: 12px">
         <input class="form-control input-sm" name="label" placeholder="Question e.g. 7(b)" required style="width: 130px">
@@ -52,7 +66,8 @@
     data: "{{ url_for('paper_data', id=paper.id) }}",
     regions: "{{ url_for('add_region', id=paper.id) }}",
     questions: "{{ url_for('add_question', id=paper.id) }}",
-    csrf: "{{ csrf_token() }}"
+    csrf: "{{ csrf_token() }}",
+    topics: {{ topic_names|tojson }}
   };
 </script>
 <script src="{{ url_for('static', filename='template.js') }}"></script>

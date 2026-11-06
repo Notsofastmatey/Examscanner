@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<h2>Courses</h2>
+<p class="text-muted">A course is a list of topics, each with points to revise and links to videos or other help.
+  Tag each question on a paper with a topic and the student reports group marks by topic and point students
+  to what to revise. Any subject can use its own course.</p>
+
+{% if courses %}
+<table class="table">
+  <tr><th>Course</th><th>Subject</th><th>Topics</th><th></th></tr>
+  {% for course in courses %}
+  <tr>
+    <td>{{ course.name }}</td>
+    <td>{{ course.subject or '' }}</td>
+    <td>{{ course.topics.count() }}</td>
+    <td><a href="{{ url_for('course_json', id=course.id) }}">Download to edit</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>No courses yet.</p>
+{% endif %}
+
+<h3>Load a course</h3>
+<p class="text-muted">Upload a course file (JSON). Uploading a course with the same name replaces it, so to change
+  one, download it, edit it and upload it again. The <code>courses</code> folder of the app has examples.</p>
+<form method="post" enctype="multipart/form-data" class="form-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="file" name="file" accept=".json,application/json" required class="form-control">
+  <button class="btn btn-default">Load course</button>
+</form>
+{% endblock %}

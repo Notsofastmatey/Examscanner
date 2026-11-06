@@ -4,6 +4,10 @@
 {% include '_paper_nav.html' %}
 
 {% if scripts %}
+<p>
+  <a class="btn btn-primary btn-sm" href="{{ url_for('paper_reports', id=paper.id) }}">Download all student reports (Word)</a>
+  {% if not paper.course %}<span class="text-muted small">Pick a course on the Template page and give each question a topic to add topic pages and revision links.</span>{% endif %}
+</p>
 <div style="overflow-x: auto">
 <table class="table table-condensed table-bordered" style="font-size: 12px">
   <tr>
@@ -14,7 +18,8 @@
   {% for script in scripts %}
   {% set total = script.total() %}
   <tr>
-    <td style="white-space: nowrap">{{ script.student_name or 'Script {}'.format(script.number) }}</td>
+    <td style="white-space: nowrap">{{ script.student_name or 'Script {}'.format(script.number) }}
+      <a href="{{ url_for('script_report', id=script.id) }}" title="Word report" class="small">report</a></td>
     {% for q in questions %}
     {% set a = marks.get((script.id, q.id)) %}
     <td class="text-center{% if a and a.mark is none %} warning{% endif %}" {% if a and a.comment %}title="{{ a.comment }}"{% endif %}>

@@ -1,10 +1,15 @@
 from app import app, db
+import io
+import json
 import os
+import zipfile
 from urllib.parse import urlsplit
 from flask import send_from_directory, send_file, render_template, flash, redirect, url_for, request, abort, jsonify
 from app.forms import LoginForm,RegistrationForm, PaperForm, BatchForm
 from flask_login import current_user, login_user, logout_user, login_required
-from app.models import User, Paper, Question, Region, Batch, Script, Answer
+from app.models import User, Paper, Question, Region, Batch, Script, Answer, Course
+from app.courses import import_course, export_course
+from app.reports import student_report, report_filename
 from app.batches import process_batch, answer_image, name_image
 from app.papers import prepare_paper, paper_dir, mark_scheme_image
 from werkzeug.utils import secure_filename
@@ -116,6 +121,12 @@ def own_paper(id):
         abort(404)
     return paper
 
+def own_course(id):
+    course = db.get_or_404(Course, id)
+    if course.author != current_user:
+        abort(404)
+    return course
+
 def own_question(id):
     question = db.get_or_404(Question, id)
     own_paper(question.paper_id)
@@ -126,7 +137,17 @@ def own_question(id):
 def paper_template(id):
     paper = own_paper(id)
     return render_template('template.html', title=paper.paper_name, paper=paper,
-                           questions=paper.questions.all())
+                           questions=paper.questions.all(), courses=current_user.courses.all(),
+                           topic_names={t.code: t.name for t in paper.course.topics} if paper.course else {})
+
+@app.route('/paper/<int:id>/course', methods=['POST'])
+@login_required
+def set_paper_course(id):
+    paper = own_paper(id)
+    course_id = request.form.get('course_id', type=int)
+    paper.course = own_course(course_id) if course_id else None
+    db.session.commit()
+    return redirect(url_for('paper_template', id=paper.id))
 
 @app.route('/paper/<int:id>/page/<int:n>')
 @login_required
@@ -202,6 +223,8 @@ def edit_question(id):
             question.label = data['label'][:20]
         if 'max_mark' in data:
             question.max_mark = data['max_mark'] or None
+        if 'topic' in data:
+            question.topic = (data['topic'] or '').strip()[:20] or None
     db.session.commit()
     return jsonify(ok=True)
 
@@ -319,6 +342,51 @@ def paper_results(id):
     marks = {(a.script_id, a.question_id): a for s in scripts for a in s.answers}
     return render_template('results.html', title=paper.paper_name, paper=paper, questions=questions,
                            scripts=scripts, marks=marks, out_of=sum(q.max_mark or 0 for q in questions))
+
+@app.route('/script/<int:id>/report.docx')
+@login_required
+def script_report(id):
+    script = db.get_or_404(Script, id)
+    own_paper(script.paper_id)
+    out = io.BytesIO()
+    student_report(script).save(out)
+    out.seek(0)
+    return send_file(out, as_attachment=True, download_name=report_filename(script))
+
+@app.route('/paper/<int:id>/reports.zip')
+@login_required
+def paper_reports(id):
+    paper = own_paper(id)
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
+        for script in paper.scripts:
+            doc = io.BytesIO()
+            student_report(script).save(doc)
+            z.writestr(report_filename(script), doc.getvalue())
+    out.seek(0)
+    return send_file(out, as_attachment=True, download_name=secure_filename(paper.paper_name) + '-reports.zip')
+
+@app.route('/courses', methods=['GET', 'POST'])
+@login_required
+def courses():
+    if request.method == 'POST':
+        upload = request.files.get('file')
+        try:
+            course = import_course(current_user, json.load(upload))
+            flash('Loaded {} with {} topics.'.format(course.name, course.topics.count()))
+        except (ValueError, KeyError, TypeError, AttributeError) as e:
+            db.session.rollback()
+            flash('That file could not be read as a course: {}'.format(e))
+        return redirect(url_for('courses'))
+    return render_template('courses.html', title='Courses', courses=current_user.courses.all())
+
+@app.route('/course/<int:id>.json')
+@login_required
+def course_json(id):
+    course = own_course(id)
+    out = io.BytesIO(json.dumps(export_course(course), indent=2, ensure_ascii=False).encode('utf-8'))
+    return send_file(out, as_attachment=True, download_name=secure_filename(course.name) + '.json',
+                     mimetype='application/json')
 
 @app.route('/showPDF')
 @login_required

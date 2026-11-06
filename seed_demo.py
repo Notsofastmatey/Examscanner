@@ -5,12 +5,16 @@ as an upload, for trying the app out locally.
     .venv/Scripts/python seed_demo.py "../J27701 Computer systems June 2025.pdf" ...
 
 A paper followed by --printed scan.pdf uses that scan of the printed paper for the layout.
+Every course in courses/ is loaded too (run with no papers to just load courses).
 '''
+import glob
+import json
 import os
 import shutil
 import sys
 from app import app, db
 from app.models import User, Paper
+from app.courses import import_course
 from app.papers import prepare_paper
 
 DEMO_USERNAME = 'demo'
@@ -23,6 +27,9 @@ with app.app_context():
         user.set_password(DEMO_PASSWORD)
         db.session.add(user)
         db.session.commit()
+    for path in glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'courses', '*.json')):
+        with open(path, encoding='utf-8') as f:
+            print('Course:', import_course(user, json.load(f)).name)
     args = sys.argv[1:]
     for k, path in enumerate(args):
         if path == '--printed' or (k and args[k - 1] == '--printed'):
