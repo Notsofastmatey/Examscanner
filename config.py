@@ -16,4 +16,4 @@ class Config(object):
     APP_ROOT = os.path.dirname(os.path.abspath(__file__))
     UPLOAD_PATH = os.path.join(APP_ROOT, 'uploads')
     #UPLOAD_PATH = './uploads/'
-    MAX_CONTENT_LENGTH = 1024 * 1024 * 15 #15MB upload limit
+    MAX_CONTENT_LENGTH = 1024 * 1024 * 300 #300MB upload limit, for batches of scans

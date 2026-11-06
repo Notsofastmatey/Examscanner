@@ -139,69 +139,92 @@ Guessing the answer areas on the question paper. Every markable part ends with
 its mark in square brackets, e.g. [4] or ........ [4], so the answer area for
 part N runs from the end of part N-1 down to its own [4], spanning page breaks
 if necessary. Exam board papers start with a cover sheet, which is skipped.
+
+The text comes either from the PDF itself or, for a scan of the printed paper,
+from OCR. Either way each page is a list of (text, top, bottom) lines, with
+positions as fractions of the page height.
 '''
-MARK = re.compile(r'(?:^|[.\s])\[(\d+)\]$')
-COVER_WORDS = ('candidate number', 'centre number', 'first name', 'last name', 'candidate name')
+MARK = re.compile(r'(?:^|[.\s])\[\s*(\d+)\s*\]$')
+COVER_WORDS = ('candidate number', 'centre number', 'first name', 'last name', 'candidate name', 'forename')
+NAME_WORDS = ('forename', 'surname', 'first name', 'last name', 'candidate name', 'candidate number')
+FOOTER = 0.053
+FOOTER_TEXT = re.compile(r'exambuilder|©|^\d+\s+of\s+\d+$', re.I)
 
 def is_cover(lines):
     text = ' '.join(t for t, _, _ in lines).lower()
     return any(w in text for w in COVER_WORDS) and not any(MARK.search(t) for t, _, _ in lines)
-FOOTER_MARGIN = 45
 
-def text_lines(page):
-    height = page.rect.height
-    lines = []
-    for block in page.get_text('dict')['blocks']:
-        for line in block.get('lines', []):
-            text = ''.join(s['text'] for s in line['spans']).strip()
-            if text and line['bbox'][1] < height - FOOTER_MARGIN:
-                lines.append((text, line['bbox'][1], line['bbox'][3]))
-    return lines
-
-def find_answer_areas(pdf_path, page_count):
-    areas = []
-    start = (1, 0.0)
+def pdf_lines(pdf_path, page_count):
+    pages = {}
     with pymupdf.open(pdf_path) as doc:
-        height = doc[0].rect.height
-        pages = {n: text_lines(doc[n - 1]) for n in range(1, page_count + 1)}
-        first = 2 if page_count > 1 and is_cover(pages[1]) else 1
-        # Start at the first line of text, leaving the top margin free for a name
-        if pages[first]:
-            start = (first, max(0.0, min(t for _, t, _ in pages[first]) - 8))
-        for n in range(first, page_count + 1):
-            for text, top, bottom in pages[n]:
-                m = MARK.search(text)
-                if not m:
+        for n in range(1, page_count + 1):
+            page = doc[n - 1]
+            height = page.rect.height
+            lines = []
+            for block in page.get_text('dict')['blocks']:
+                for line in block.get('lines', []):
+                    text = ''.join(s['text'] for s in line['spans']).strip()
+                    top, bottom = line['bbox'][1] / height, line['bbox'][3] / height
+                    if text and top < 1 - FOOTER:
+                        lines.append((text, top, bottom))
+            pages[n] = sorted(lines, key=lambda l: l[1])
+    return pages
+
+def answer_start(pages):
+    '''The page and height where the first answer area begins, after any cover sheet.'''
+    first = 2 if 2 in pages and is_cover(pages[1]) else 1
+    # Start at the first line of text, leaving the top margin free for a name
+    top = min((t for _, t, _ in pages.get(first, [])), default=0.01)
+    return first, max(0.0, top - 0.01)
+
+def areas_from_ends(ends, pages, page_count, gap=0.0):
+    '''
+    Turns the end of each answer, (page, height, marks) or None if it couldn't be
+    found, into boxes running from the end of the previous answer.
+    '''
+    first, top = answer_start(pages)
+    start = (first, top)
+    areas = []
+    for end in ends:
+        if end is None:
+            areas.append(None)
+            continue
+        page, bottom, marks = end
+        boxes = []
+        for p in range(start[0], page + 1):
+            y0 = start[1] if p == start[0] else 0.0
+            y1 = bottom if p == page else 1 - FOOTER
+            if p != page:
+                # Space left below the previous answer only counts if this question starts there.
+                # gap allows for scans, where the line holding the mark shows as ink just below it.
+                if not any(t > y0 + gap for _, t, _ in pages.get(p, [])):
                     continue
-                end = (n, bottom + 4)
-                boxes = []
-                for p in range(start[0], end[0] + 1):
-                    y0 = start[1] if p == start[0] else 0.0
-                    y1 = end[1] if p == end[0] else height - FOOTER_MARGIN
-                    # Space left below the previous answer only counts if this question starts there
-                    if p != end[0] and not any(t > y0 for _, t, _ in pages[p]):
-                        continue
-                    if y1 - y0 > 10:
-                        boxes.append({'page': p, 'x': 0.04, 'w': 0.92, 'y': y0 / height, 'h': (y1 - y0) / height})
-                areas.append({'marks': int(m.group(1)), 'boxes': boxes})
-                start = end
+            if y1 - y0 > 0.012:
+                boxes.append({'page': p, 'x': 0.04, 'w': 0.92, 'y': y0, 'h': y1 - y0})
+        areas.append({'marks': marks, 'boxes': boxes})
+        start = (page, bottom)
     return areas
 
-NAME_WORDS = ('forename', 'surname', 'first name', 'last name', 'candidate name', 'candidate number')
+def find_answer_areas(pages):
+    first, _ = answer_start(pages)
+    ends = []
+    for n in range(first, len(pages) + 1):
+        for text, top, bottom in pages[n]:
+            m = MARK.search(text)
+            if m:
+                ends.append((n, bottom + 0.005, int(m.group(1))))
+    return areas_from_ends(ends, pages, len(pages))
 
-def find_name_area(pdf_path):
+def find_name_area(pages):
     '''On a cover sheet, a box around the name and candidate number fields.'''
-    with pymupdf.open(pdf_path) as doc:
-        page = doc[0]
-        if not is_cover(text_lines(page)):
-            return None
-        hits = [r for w in NAME_WORDS for r in page.search_for(w)]
-        if not hits:
-            return None
-        # The same words appear again in the instructions, so keep to the first cluster of fields
-        first = min(r.y0 for r in hits)
-        hits = [r for r in hits if r.y0 < first + 90]
-        height = page.rect.height
-        top = max(0.0, first - 16)
-        bottom = min(height, max(r.y1 for r in hits) + 16)
-        return {'page': 1, 'x': 0.02, 'w': 0.96, 'y': top / height, 'h': (bottom - top) / height}
+    if not pages or not is_cover(pages[1]):
+        return None
+    hits = [(top, bottom) for text, top, bottom in pages[1] if any(w in text.lower() for w in NAME_WORDS)]
+    if not hits:
+        return None
+    # The same words appear again in the instructions, so keep to the first cluster of fields
+    first = min(t for t, _ in hits)
+    hits = [h for h in hits if h[0] < first + 0.107]
+    top = max(0.0, first - 0.019)
+    bottom = min(1.0, max(b for _, b in hits) + 0.019)
+    return {'page': 1, 'x': 0.02, 'w': 0.96, 'y': top, 'h': bottom - top}

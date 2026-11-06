@@ -26,6 +26,7 @@ class Paper(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     page_count = db.Column(db.Integer)
     mark_scheme_filename = db.Column(db.String(300))
+    layout_filename = db.Column(db.String(300))     # optional scan of the printed paper
     questions = db.relationship('Question', backref='paper', lazy='dynamic',
                                 order_by='Question.position', cascade='all, delete-orphan')
     regions = db.relationship('Region', backref='paper', lazy='dynamic',

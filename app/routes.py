@@ -83,6 +83,10 @@ def user(username):
         os.makedirs(myPath, exist_ok=True)
         uploaded_file.save(os.path.join(app.config['UPLOAD_PATH'],current_user.get_id(), filename))
         paper = Paper(paper_name=form.paper.data, author=current_user, filename = filename)
+        printed = form.printed.data
+        if printed and printed.filename:
+            paper.layout_filename = 'printed-' + secure_filename(printed.filename)
+            printed.save(os.path.join(myPath, paper.layout_filename))
         db.session.add(paper)
         db.session.commit()
         flash('Your paper has been added to the database.')
