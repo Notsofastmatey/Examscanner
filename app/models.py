@@ -31,6 +31,8 @@ class Paper(db.Model):
                                 order_by='Question.position', cascade='all, delete-orphan')
     regions = db.relationship('Region', backref='paper', lazy='dynamic',
                               cascade='all, delete-orphan')
+    batches = db.relationship('Batch', backref='paper', lazy='dynamic', cascade='all, delete-orphan')
+    scripts = db.relationship('Script', backref='paper', lazy='dynamic', order_by='Script.number')
 
     def __repr__(self):
             return '<Paper {}>'.format(self.paper_name)
@@ -43,6 +45,7 @@ class Question(db.Model):
     max_mark = db.Column(db.Integer)
     mark_scheme = db.Column(db.Text)
     guidance = db.Column(db.Text)
+    class_comment = db.Column(db.Text)      # feedback on this question for the whole class
     regions = db.relationship('Region', backref='question', lazy='dynamic',
                               cascade='all, delete-orphan')
 
@@ -69,6 +72,45 @@ class Region(db.Model):
     def to_dict(self):
         return {'id': self.id, 'question_id': self.question_id, 'kind': self.kind,
                 'page': self.page, 'x': self.x, 'y': self.y, 'w': self.w, 'h': self.h}
+
+# One uploaded scan of a pile of scripts
+class Batch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    paper_id = db.Column(db.Integer, db.ForeignKey('paper.id'), index=True)
+    filename = db.Column(db.String(300))
+    created_time = db.Column(db.DateTime, default=datetime.utcnow)
+    scripts = db.relationship('Script', backref='batch', lazy='dynamic', cascade='all, delete-orphan')
+
+# One student's script. Markers only ever see its number, never the name.
+class Script(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('batch.id'), index=True)
+    paper_id = db.Column(db.Integer, db.ForeignKey('paper.id'), index=True)
+    number = db.Column(db.Integer)
+    student_name = db.Column(db.String(120))
+    comment = db.Column(db.Text)            # overall feedback for this student
+    answers = db.relationship('Answer', backref='script', lazy='dynamic', cascade='all, delete-orphan')
+
+    def total(self):
+        return sum(a.mark or 0 for a in self.answers)
+
+# A student's answer to one question, cropped from their scan.
+# ink is how much writing there is, used to spot blank answers.
+class Answer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    script_id = db.Column(db.Integer, db.ForeignKey('script.id'), index=True)
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'), index=True)
+    mark = db.Column(db.Integer)
+    comment = db.Column(db.Text)
+    ink = db.Column(db.Float)
+    blank = db.Column(db.Boolean, default=False)
+    # The marker's ticks, [[x, y], ...] as fractions of the answer image. Just for the marker: not counted.
+    ticks = db.Column(db.JSON)
+    question = db.relationship('Question')
+
+    def to_dict(self):
+        return {'id': self.id, 'script': self.script.number, 'mark': self.mark,
+                'comment': self.comment or '', 'blank': bool(self.blank), 'ticks': self.ticks or []}
 
 @login.user_loader
 def load_user(id):

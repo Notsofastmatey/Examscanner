@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+{% include '_paper_nav.html' %}
+
+<p class="text-muted">Type each student's name from their cover sheet. Only you see this page: markers only ever see script numbers.</p>
+{% if scripts %}
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for script in scripts %}
+  <div class="row" style="margin-bottom: 14px; display: flex; align-items: center">
+    <div class="col-md-2"><strong>Script {{ script.number }}</strong></div>
+    <div class="col-md-6">
+      <img src="{{ url_for('script_name_image', id=script.id) }}" style="width: 100%; border: 1px solid #ddd" alt="Name box for script {{ script.number }}">
+    </div>
+    <div class="col-md-4">
+      <input class="form-control" name="name-{{ script.id }}" value="{{ script.student_name or '' }}" placeholder="Student name"
+             {% if loop.first %}autofocus{% endif %}>
+    </div>
+  </div>
+  {% endfor %}
+  <button class="btn btn-primary">Save names</button>
+</form>
+{% else %}
+<p class="text-muted">Upload some scripts first.</p>
+{% endif %}
+{% endblock %}

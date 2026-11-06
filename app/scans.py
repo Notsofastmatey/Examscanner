@@ -241,3 +241,113 @@ def scan_layout(pdf_path, expected, labels, max_scripts=3):
     areas = areas_from_ends(ends, pages, len(template), gap=0.015)
     return {'pages': template, 'lines': pages, 'areas': areas, 'messages': messages,
             'scripts': len(scripts)}
+
+
+'''
+Importing a batch of scripts. Each scanned page is warped onto its template page,
+so the answer boxes drawn on the template can be cut straight out of it.
+'''
+def load_gray(path):
+    return cv2.imdecode(np.fromfile(path, np.uint8), cv2.IMREAD_GRAYSCALE)
+
+def sensible(H, width, height):
+    '''Rejects transforms that would fold, flip or wildly stretch the page.'''
+    corners = np.float32([[[0, 0]], [[width, 0]], [[width, height]], [[0, height]]])
+    mapped = cv2.perspectiveTransform(corners, H).reshape(-1, 2)
+    area = cv2.contourArea(mapped)
+    return 0.6 < area / (width * height) < 1.6 and cv2.isContourConvex(mapped.astype(np.float32))
+
+def align_page(scan, template, scale, min_points=15):
+    '''
+    Warps a scanned page (RGB) onto a template page (grey), at scale times the
+    template's size. Returns the warped page and whether features matched; if
+    they didn't, the page is only stretched to fit and shifted vertically.
+    '''
+    th, tw = template.shape
+    gray = cv2.cvtColor(scan, cv2.COLOR_RGB2GRAY)
+    f = th / gray.shape[0]
+    small = cv2.resize(gray, None, fx=f, fy=f, interpolation=cv2.INTER_AREA)
+    H, points = homography(features(small), features(template))
+    matched = H is not None and points >= min_points and sensible(H, small.shape[1], small.shape[0])
+    if not matched:
+        stretch = cv2.resize(small, (tw, th))
+        shift = vertical_shift(stretch, template) * th
+        H = np.float64([[tw / small.shape[1], 0, 0], [0, 1, shift], [0, 0, 1]])
+    M = np.diag([scale, scale, 1.0]) @ H @ np.diag([f, f, 1.0])
+    size = (int(tw * scale), int(th * scale))
+    return cv2.warpPerspective(scan, M, size, borderValue=(255, 255, 255)), matched
+
+def ink_fraction(red):
+    if red.size == 0:
+        return 0.0
+    return float(cv2.adaptiveThreshold(red, 1, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 25, 15).mean())
+
+def crop(img, box, pad=0.004):
+    h, w = img.shape[:2]
+    x0, y0 = int(max(0, box['x'] - pad) * w), int(max(0, box['y'] - pad) * h)
+    x1, y1 = int(min(1, box['x'] + box['w'] + pad) * w), int(min(1, box['y'] + box['h'] + pad) * h)
+    return img[y0:y1, x0:x1]
+
+def stack(images):
+    '''Joins the pieces of an answer that spans pages, one above the other.'''
+    width = max(i.shape[1] for i in images)
+    rows = []
+    for k, img in enumerate(images):
+        if k:
+            rows.append(np.full((6, width, 3), 200, np.uint8))
+        rows.append(cv2.copyMakeBorder(img, 0, 0, 0, width - img.shape[1], cv2.BORDER_CONSTANT, value=(255, 255, 255)))
+    return np.vstack(rows)
+
+def split_batch(doc, cover, min_points=40):
+    '''Splits a batch into scripts at every page that matches the template's cover.'''
+    f = 60 / 110
+    cover = features(cv2.resize(cover, None, fx=f, fy=f, interpolation=cv2.INTER_AREA))
+    starts = [i for i in range(doc.page_count)
+              if matching_points(features(page_image(doc, i, 60, gray=True)), cover) >= min_points]
+    if not starts or starts[0] != 0:
+        starts = [0] + starts
+    return [list(range(s, e)) for s, e in zip(starts, starts[1:] + [doc.page_count])]
+
+def import_scripts(pdf_path, template_dir, page_count, boxes, dpi=150):
+    '''
+    Cuts every answer out of a scanned batch. boxes maps a key (a question id, or
+    'name') to its boxes on the template. Returns a list of scripts, each
+    {'pages': [...], 'crops': {key: image}, 'ink': {key: extra ink}, 'rough': [pages]},
+    plus a list of messages. Works a page at a time so big batches fit in memory.
+    '''
+    messages = []
+    template = {n: load_gray('{}/page-{}.png'.format(template_dir, n)) for n in range(1, page_count + 1)}
+    scale = (dpi / 110)
+    with pymupdf.open(pdf_path) as doc:
+        scripts = split_batch(doc, template[1])
+        wrong = [k + 1 for k, s in enumerate(scripts) if len(s) != page_count]
+        if wrong:
+            messages.append('Script(s) {} do not have {} pages, so were left out: check for missing or extra pages.'
+                            .format(', '.join(map(str, wrong)), page_count))
+        scripts = [{'pages': s, 'pieces': {}, 'ink': {}, 'rough': []} for s in scripts if len(s) == page_count]
+        for n in range(1, page_count + 1):
+            on_page = [(key, b) for key, bs in boxes.items() for b in bs if b['page'] == n]
+            if not on_page:
+                continue
+            warped = []
+            for script in scripts:
+                page, matched = align_page(page_image(doc, script['pages'][n - 1], dpi), template[n], scale)
+                warped.append(page)
+                if not matched:
+                    script['rough'].append(n)
+            # The lightest pixel across all scripts keeps the print but loses most handwriting
+            clean = np.minimum.reduce([255 - w[:, :, 0] for w in warped])
+            clean = 255 - clean
+            for key, box in on_page:
+                printed = ink_fraction(crop(clean, box))
+                for script, page in zip(scripts, warped):
+                    piece = crop(page, box)
+                    script['pieces'].setdefault(key, []).append(piece)
+                    area = piece.shape[0] * piece.shape[1]
+                    extra = max(0.0, ink_fraction(piece[:, :, 0]) - printed) * area
+                    script['ink'][key] = script['ink'].get(key, 0.0) + extra
+        for script in scripts:
+            areas = {key: sum(p.shape[0] * p.shape[1] for p in pieces) for key, pieces in script['pieces'].items()}
+            script['ink'] = {key: script['ink'][key] / areas[key] for key in script['ink']}
+            script['crops'] = {key: stack(pieces) for key, pieces in script.pop('pieces').items()}
+    return scripts, messages

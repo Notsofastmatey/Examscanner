@@ -1,0 +1,10 @@
+{% set tabs = [('paper_template', 'Template'), ('paper_scripts', 'Scripts'), ('paper_names', 'Names'),
+                ('mark_overview', 'Mark'), ('paper_results', 'Results')] %}
+<h2 style="margin-top: 0">{{ paper.paper_name }}</h2>
+<ul class="nav nav-tabs" style="margin-bottom: 16px">
+  {% for endpoint, label in tabs %}
+  <li{% if request.endpoint == endpoint or (endpoint == 'mark_overview' and request.endpoint == 'mark_question') %} class="active"{% endif %}>
+    <a href="{{ url_for(endpoint, id=paper.id) }}">{{ label }}</a>
+  </li>
+  {% endfor %}
+</ul>

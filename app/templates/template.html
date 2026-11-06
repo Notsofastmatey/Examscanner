@@ -21,8 +21,8 @@
   #markScheme img { width: 100%; border: 1px solid #ddd; }
 </style>
 
-<h2>{{ paper.paper_name }} <small>{{ paper.page_count or '?' }} pages</small></h2>
-<p class="text-muted">Pick a question, then drag on the paper to draw its answer box. Drag a box to move it, or its corner to resize.
+{% include '_paper_nav.html' %}
+<p class="text-muted">{{ paper.page_count or '?' }} pages.Pick a question, then drag on the paper to draw its answer box. Drag a box to move it, or its corner to resize.
   A question can have several boxes. Draw one <strong>Name box</strong> where students write their name: markers will never see it.</p>
 
 <div class="row">

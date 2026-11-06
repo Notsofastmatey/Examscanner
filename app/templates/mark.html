@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<style>
+  body > .container { width: 96%; max-width: 1600px; }
+  .mark-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+  .mark-head h3 { margin: 0; }
+  .answer-panel { background: #fff; border: 1px solid #ddd; padding: 8px; }
+  .answer-panel img { width: 100%; display: block; }
+  #answerArea { position: relative; cursor: crosshair; user-select: none; }
+  .tick { position: absolute; transform: translate(-30%, -70%); color: #d0021b; font-size: 34px; font-weight: bold;
+          line-height: 1; cursor: pointer; text-shadow: 0 0 3px #fff; }
+  .tick:hover { color: #888; }
+  .answer-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .chips { margin: 10px 0; display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { min-width: 34px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 3px; background: #fff; font-size: 12px; cursor: pointer; text-align: center; }
+  .chip.marked { background: #dff0d8; border-color: #9c9; }
+  .chip.blank { border-style: dashed; }
+  .chip.current { outline: 2px solid #337ab7; }
+  .marks { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .marks .btn { min-width: 52px; font-size: 20px; }
+  .side h4 { margin-top: 18px; }
+  .scheme { max-height: 55vh; overflow-y: auto; border: 1px solid #ddd; }
+  .scheme img { width: 100%; display: block; }
+  kbd { font-size: 11px; }
+</style>
+
+{% include '_paper_nav.html' %}
+
+<div class="mark-head">
+  <h3>Question {{ question.label }} <small>{{ question.max_mark or '?' }} mark{{ '' if question.max_mark == 1 else 's' }}</small></h3>
+  <span id="progress" class="text-muted"></span>
+  <span style="margin-left: auto">
+    {% if previous %}<a class="btn btn-default btn-sm" href="{{ url_for('mark_question', id=previous.id) }}">&larr; {{ previous.label }}</a>{% endif %}
+    {% if next %}<a class="btn btn-default btn-sm" id="nextQuestion" href="{{ url_for('mark_question', id=next.id) }}">{{ next.label }} &rarr;</a>{% endif %}
+  </span>
+</div>
+
+{% if not answers %}
+<p class="text-muted">There are no answers to this question yet. Upload some scripts first.</p>
+{% else %}
+<div class="row">
+  <div class="col-md-7">
+    <div class="answer-panel">
+      <div class="answer-info">
+        <strong id="scriptLabel"></strong>
+        <span id="blankBadge" class="label label-warning" style="display: none">Little writing found</span>
+        <span>
+          <button class="btn btn-default btn-xs" id="prev">&larr; Previous</button>
+          <button class="btn btn-default btn-xs" id="next">Next &rarr;</button>
+        </span>
+      </div>
+      <div id="answerArea">
+        <img id="answerImage" alt="Student answer" draggable="false">
+      </div>
+    </div>
+    <p class="text-muted small" style="margin-top: 4px">Click the answer to put a tick where a mark was earned; click a tick to remove it.
+      Ticks are just for you and don't change the mark.</p>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="col-md-5 side">
+    <div class="marks" id="markButtons"></div>
+    <p class="text-muted small">Press <kbd>0</kbd>&ndash;<kbd>9</kbd> to give a mark and move on, <kbd>&larr;</kbd> <kbd>&rarr;</kbd> to move between answers,
+      <kbd>C</kbd> to write a comment.</p>
+    <div id="blankTools" style="display: none" class="alert alert-warning small">
+      <span id="blankCount"></span>
+      <button class="btn btn-warning btn-xs" id="zeroBlanks">Give them all 0</button>
+    </div>
+
+    <label for="comment">Comment for this student</label>
+    <input class="form-control" id="comment" list="previousComments" placeholder="Optional. Press Enter to save and move on" autocomplete="off">
+    <datalist id="previousComments">
+      {% for c in comments %}<option value="{{ c }}">{% endfor %}
+    </datalist>
+
+    <h4>Mark scheme</h4>
+    <div class="scheme">
+      <img src="{{ url_for('question_mark_scheme', id=question.id) }}" alt="Mark scheme for {{ question.label }}"
+           onerror="this.replaceWith(document.createTextNode('No mark scheme image for this question.'))">
+    </div>
+
+    <h4>Feedback for the whole class</h4>
+    <textarea class="form-control" id="classComment" rows="3" placeholder="Common mistakes or strengths on this question">{{ question.class_comment or '' }}</textarea>
+    <small class="text-muted" id="classSaved"></small>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  const MARKING = {
+    answers: {{ answers|tojson }},
+    maxMark: {{ question.max_mark or 0 }},
+    classCommentUrl: "{{ url_for('save_class_comment', id=question.id) }}",
+    csrf: "{{ csrf_token() }}"
+  };
+</script>
+<script src="{{ url_for('static', filename='mark.js') }}"></script>
+{% endblock %}
