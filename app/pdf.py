@@ -186,3 +186,22 @@ def find_answer_areas(pdf_path, page_count):
                 areas.append({'marks': int(m.group(1)), 'boxes': boxes})
                 start = end
     return areas
+
+NAME_WORDS = ('forename', 'surname', 'first name', 'last name', 'candidate name', 'candidate number')
+
+def find_name_area(pdf_path):
+    '''On a cover sheet, a box around the name and candidate number fields.'''
+    with pymupdf.open(pdf_path) as doc:
+        page = doc[0]
+        if not is_cover(text_lines(page)):
+            return None
+        hits = [r for w in NAME_WORDS for r in page.search_for(w)]
+        if not hits:
+            return None
+        # The same words appear again in the instructions, so keep to the first cluster of fields
+        first = min(r.y0 for r in hits)
+        hits = [r for r in hits if r.y0 < first + 90]
+        height = page.rect.height
+        top = max(0.0, first - 16)
+        bottom = min(height, max(r.y1 for r in hits) + 16)
+        return {'page': 1, 'x': 0.02, 'w': 0.96, 'y': top / height, 'h': (bottom - top) / height}
